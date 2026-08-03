@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Highlights — viewer</title>
+<style>
+  :root { color-scheme: dark; --line:rgba(255,255,255,.1); --dim:#8b8d96; --fg:#eceef3;
+          --glass:rgba(20,21,26,.66); }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:#0b0c0f; color:var(--fg);
+         font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+         display:flex; align-items:center; justify-content:center; padding:28px; }
+  body::before { content:""; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(50% 40% at 18% 10%, rgba(90,124,255,.20), transparent 60%),
+      radial-gradient(45% 40% at 86% 20%, rgba(190,110,255,.15), transparent 60%),
+      radial-gradient(50% 45% at 60% 94%, rgba(60,190,180,.12), transparent 60%); }
+  .wrap { width:100%; max-width:620px; }
+  h1 { margin:0 0 6px; font-size:26px; font-weight:650; letter-spacing:-.02em; }
+  .sub { color:var(--dim); font-size:14px; margin-bottom:22px; }
+  /* label is inline by default — without display:block the padding and centering do nothing */
+  .drop { display:block; border:1.5px dashed rgba(255,255,255,.22); border-radius:22px; padding:44px 26px;
+          text-align:center; cursor:pointer; transition:border-color .15s, background .15s;
+          background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+          -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px); }
+  .drop:hover, .drop.hot { border-color:rgba(120,150,255,.75); background:rgba(90,124,255,.1); }
+  .drop svg { width:38px; height:38px; stroke:#8fa8ff; fill:none; stroke-width:1.6;
+              stroke-linecap:round; stroke-linejoin:round; margin-bottom:12px; }
+  .drop b { display:block; font-size:16px; font-weight:600; margin-bottom:5px; }
+  .drop span { color:var(--dim); font-size:13.5px; }
+  .hint { margin-top:20px; color:#6f7178; font-size:13px; line-height:1.75; }
+  .hint code { background:rgba(255,255,255,.07); border-radius:6px; padding:1px 6px;
+               font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; }
+  .err { margin-top:16px; color:#ff9a9a; font-size:13.5px; min-height:20px; }
+  input[type=file] { display:none; }
+</style></head>
+<body>
+<div class="wrap">
+  <h1>Highlights</h1>
+  <div class="sub">A look at the export from the marker. Nothing gets installed and the file goes nowhere — it's all worked out right here, in the browser.</div>
+
+  <label class="drop" id="drop">
+    <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+    <b>Drag highlights.json in here</b>
+    <span>or click and pick the file</span>
+    <input type="file" id="file" accept=".json,application/json" multiple>
+  </label>
+
+  <div class="err" id="err"></div>
+
+  <div class="hint">
+    The file comes from the marker's panel in the browser: <code>Alt+H</code> → "Export to library".
+    It lands in Downloads.<br>
+    You can drop several files from different computers at once — they merge, nothing gets lost.
+  </div>
+</div>
+
+<script type="text/plain" id="tpl"><!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Highlights</title>
+<style>
+  :root { color-scheme: dark; --line:rgba(255,255,255,.1); --dim:#8b8d96; --fg:#eceef3;
+          --glass:rgba(20,21,26,.66); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0b0c0f; color:var(--fg);
+         font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; }
+  body::before { content:""; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(50% 40% at 18% 10%, rgba(90,124,255,.20), transparent 60%),
+      radial-gradient(45% 40% at 86% 20%, rgba(190,110,255,.15), transparent 60%),
+      radial-gradient(50% 45% at 60% 94%, rgba(60,190,180,.12), transparent 60%); }
+  svg.i { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2;
+          stroke-linecap:round; stroke-linejoin:round; vertical-align:-3px; }
+
+  header { position:sticky; top:0; z-index:9; background:var(--glass);
+           -webkit-backdrop-filter:blur(40px) saturate(190%); backdrop-filter:blur(40px) saturate(190%);
+           border-bottom:1px solid var(--line); padding:14px 22px 12px; }
+  .top { display:flex; align-items:center; gap:12px; margin-bottom:11px; }
+  h1 { margin:0; font-size:18px; font-weight:650; letter-spacing:-.01em; }
+  .sub { color:var(--dim); font-size:12.5px; }
+  .grow { flex:1; }
+  .searchbox { position:relative; margin-bottom:10px; }
+  .searchbox svg { position:absolute; left:12px; top:11px; color:var(--dim); }
+  input[type=search], input[type=text] { width:100%; background:rgba(0,0,0,.3);
+      border:1px solid var(--line); color:var(--fg); border-radius:12px;
+      padding:10px 12px 10px 36px; font:inherit; outline:none; }
+  input[type=text] { padding-left:12px; }
+  input:focus { border-color:rgba(120,150,255,.6); box-shadow:0 0 0 3px rgba(90,124,255,.16); }
+
+  .chips { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+  .chip { border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:5px 6px 5px 12px;
+          font-size:12.5px; cursor:pointer; user-select:none; display:inline-flex;
+          align-items:center; gap:8px; color:#dcdde3;
+          background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.04));
+          box-shadow:inset 0 1px 0 rgba(255,255,255,.16); transition:background .13s,transform .12s; }
+  .chip:hover { background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08)); }
+  .chip:active { transform:scale(.97); }
+  .chip.on { background:rgba(255,255,255,.2); color:#fff; border-color:rgba(255,255,255,.3); }
+  .chip i.dot { width:9px; height:9px; border-radius:50%; }
+  .chip .box { width:17px; height:17px; border-radius:6px; border:1.5px solid rgba(255,255,255,.32);
+               display:inline-flex; align-items:center; justify-content:center; font-size:11px;
+               color:transparent; }
+  .chip .box.pin { background:#5a7cff; border-color:#5a7cff; color:#fff; }
+  .chip.plain { padding:5px 13px; }
+  .chip .doc { color:#9fb2ff; display:inline-flex; }
+  .chip .doc svg.i { width:14px; height:14px; }
+
+  .btn { border:1px solid var(--line); border-radius:12px; padding:8px 13px; font:inherit;
+         font-size:12.5px; cursor:pointer; display:inline-flex; gap:7px; align-items:center;
+         color:#dcdde3; background:linear-gradient(180deg,rgba(255,255,255,.11),rgba(255,255,255,.04));
+         box-shadow:inset 0 1px 0 rgba(255,255,255,.16); }
+  .btn:hover { background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08)); color:#fff; }
+  .btn.primary { background:rgba(90,124,255,.92); border-color:transparent; color:#fff; }
+  .btn.primary:hover { background:rgba(104,138,255,1); }
+
+  .pop { position:absolute; z-index:20; margin-top:8px; width:340px; max-width:92vw;
+         background:var(--glass); border:1px solid rgba(255,255,255,.16); border-radius:18px;
+         padding:9px; box-shadow:0 24px 60px rgba(0,0,0,.5);
+         -webkit-backdrop-filter:blur(40px) saturate(190%); backdrop-filter:blur(40px) saturate(190%); }
+  .rows { max-height:270px; overflow-y:auto; display:flex; flex-direction:column; gap:2px;
+          margin-top:8px; padding:3px; border-radius:13px; background:rgba(0,0,0,.24);
+          border:1px solid rgba(255,255,255,.07); }
+  .rows::-webkit-scrollbar { width:8px; }
+  .rows::-webkit-scrollbar-thumb { background:rgba(255,255,255,.16); border-radius:8px; }
+  .row { display:flex; align-items:center; gap:10px; height:36px; padding:0 10px; border:0;
+         border-radius:9px; background:none; color:#e9e9ee; font:inherit; font-size:13px;
+         text-align:left; cursor:pointer; width:100%; }
+  .row:hover { background:rgba(255,255,255,.1); }
+  .row .nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .row .ct { color:#8b8d96; font-size:11.5px; }
+  .row .box { width:18px; height:18px; border-radius:6px; border:1.5px solid rgba(255,255,255,.3);
+              display:inline-flex; align-items:center; justify-content:center; font-size:11px;
+              color:transparent; flex:none; }
+  .row .box.pin { background:#5a7cff; border-color:#5a7cff; color:#fff; }
+
+  main { padding:18px 22px 90px; max-width:940px; margin:0 auto; }
+  .session { display:flex; align-items:center; gap:10px; margin:26px 0 12px; color:var(--dim);
+             font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; }
+  .session::after { content:""; flex:1; height:1px; background:var(--line); }
+  .session:first-child { margin-top:4px; }
+
+  .item { display:flex; gap:14px; margin-bottom:10px; }
+  .num { flex:none; width:28px; height:28px; border-radius:50%; display:flex; align-items:center;
+         justify-content:center; font-size:11.5px; font-weight:700; color:#0d0e11; margin-top:3px; }
+  .body { flex:1; background:rgba(255,255,255,.045); border:1px solid var(--line);
+          border-left:3px solid #555; border-radius:16px; padding:13px 16px;
+          -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+          box-shadow:0 8px 26px rgba(0,0,0,.24); }
+  .q { white-space:pre-wrap; }
+  .f-b { font-weight:700; } .f-u { text-decoration:underline; text-underline-offset:3px; }
+  .f-s { text-decoration:line-through; } .f-u.f-s { text-decoration:underline line-through; }
+  .note { margin-top:8px; color:#ffd9a0; font-size:13px; white-space:pre-wrap; }
+  .meta { margin-top:10px; font-size:11.5px; color:var(--dim); display:flex; gap:12px;
+          flex-wrap:wrap; align-items:center; }
+  .meta a { color:#8fa8ff; text-decoration:none; display:inline-flex; gap:5px; align-items:center; }
+  .meta button { background:none; border:0; color:var(--dim); font:inherit; cursor:pointer;
+                 padding:0; display:inline-flex; gap:5px; align-items:center; }
+  .meta button:hover, .meta a:hover { color:#fff; }
+  .tag { cursor:pointer; }
+  .empty { color:#63656d; padding:60px 0; text-align:center; }
+  .btn.more { display:block; margin:22px auto 0; padding:10px 22px; }
+  .toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--glass);
+           border:1px solid rgba(255,255,255,.16); border-radius:999px; padding:9px 18px;
+           -webkit-backdrop-filter:blur(30px); backdrop-filter:blur(30px); z-index:30; }
+</style></head>
+<body>
+<header>
+  <div class="top">
+    <h1>Highlights</h1>
+    <div class="sub" id="sub"></div>
+    <span class="grow"></span>
+    <button class="btn" id="copyAll"><svg class='i' viewBox='0 0 24 24'><rect x='8' y='8' width='12' height='12' rx='2'/><path d='M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2'/></svg> Copy</button>
+    <button class="btn" id="dl"><svg class='i' viewBox='0 0 24 24'><path d='M12 4v12M7 11l5 5 5-5M4 20h16'/></svg> Download as is</button>
+    <button class="btn primary" id="ask"><svg class='i' viewBox='0 0 24 24'><path d='M12 3l1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z'/><path d='M18 16l.9 2.2L21 19l-2.1.8L18 22l-.9-2.2L15 19l2.1-.8z'/></svg> Ask Claude to sort it out</button>
+  </div>
+  <div class="searchbox"><svg class='i' viewBox='0 0 24 24'><circle cx='10.5' cy='10.5' r='6.5'/><path d='M15.5 15.5 21 21'/></svg><input type="search" id="q" placeholder="Search text, notes, sources"></div>
+  <div class="chips" id="tags"></div>
+</header>
+<main id="view"></main>
+<script>
+const DATA = __DATA__;
+const PALETTE = __PALETTE__;
+const NOTAG = __NOTAG__;
+const DOCS = new Set(__DOCS__);   // topics that have a live document
+const GAP = 30 * 60 * 1000;      // a break over half an hour means a new session
+
+/* Filter: clicking the name switches to that topic, the checkbox pins it.
+   Pinned ones add up, the current one is added on top of them. */
+const state = { q:"", current:null, pinned:new Set(), menu:false };
+
+const counts = {};
+DATA.forEach(h => (h.g.length ? h.g : ["no topic"]).forEach(t => counts[t] = (counts[t]||0)+1));
+const lastSeen = {};
+DATA.forEach(h => (h.g.length ? h.g : ["no topic"]).forEach(t => {
+  if (!lastSeen[t] || h.ts > lastSeen[t]) lastSeen[t] = h.ts; }));
+const byRecent = Object.keys(counts).sort((a,b) => (lastSeen[b]||"").localeCompare(lastSeen[a]||""));
+const colorOf = t => PALETTE[t] || NOTAG;
+
+/* The "to this spot" link: a browser text fragment. Computed on the fly —
+   storing percent-encoded text in the file was many times heavier than the text. */
+const SPA_HOSTS = /(^|\.)(claude\.ai|chatgpt\.com|chat\.openai\.com|gemini\.google\.com|aistudio\.google\.com)$/i;
+function fragUrl(h) {
+  const base = h.u || "";
+  if (!base) return "";
+  try {
+    const u = new URL(base);
+    if (u.protocol === "file:") return base;   // desktop highlight: file://…#page=N
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    if (SPA_HOSTS.test(u.hostname)) return base;
+  } catch { return ""; }
+  const ex = String(h.t || "").replace(/\s+/g, " ").trim();
+  if (!ex) return base;
+  const enc = t => encodeURIComponent(t).replace(/-/g, "%2D");
+  let dir;
+  if (ex.length > 70) {
+    const head = ex.slice(0, 40).replace(/\s\S*$/, "");
+    const tail = ex.slice(-40).replace(/^\S*\s/, "");
+    dir = enc(head) + "," + enc(tail);
+  } else dir = enc(ex);
+  return base + "#:~:text=" + dir;
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function active() {
+  const set = new Set(state.pinned);
+  if (state.current) set.add(state.current);
+  return set;
+}
+
+function match(h) {
+  const on = active();
+  if (on.size) {
+    const own = h.g.length ? h.g : ["no topic"];
+    if (!own.some(t => on.has(t))) return false;
+  }
+  if (state.q) {
+    const blob = (h.t + " " + h.n + " " + h.s).toLowerCase();
+    return state.q.toLowerCase().split(/\s+/).every(w => blob.includes(w));
+  }
+  return true;
+}
+const rows = () => DATA.filter(match).sort((a,b) => (a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0));
+
+function chipHtml(t) {
+  const on = active().has(t), pin = state.pinned.has(t);
+  return `<span class="chip ${on?"on":""}" data-t="${esc(t)}">
+      <i class="dot" style="background:${colorOf(t)}"></i>${esc(t)}
+      ${DOCS.has(t) ? `<span class="doc" title="A document is kept for this topic"><svg class='i' viewBox='0 0 24 24'><path d='M13 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z'/><path d='M13 3v6h6M9 13h6M9 17h4'/></svg></span>` : ""}
+      <span class="box ${pin?"pin":""}" data-pin="${esc(t)}" title="Pin">✓</span></span>`;
+}
+
+function chips() {
+  const shown = byRecent.slice(0, 5);
+  document.getElementById("tags").innerHTML =
+    `<span class="chip plain ${active().size?"":"on"}" data-all="1">All</span>`
+    + shown.map(chipHtml).join("")
+    + (byRecent.length > 5 ? `<span class="chip plain" data-menu="1" style="font-size:16px;letter-spacing:1px">⋯</span>` : "")
+    + (state.menu ? menuHtml() : "");
+}
+
+function menuHtml(filter) {
+  const q = (filter || "").toLowerCase();
+  const list = byRecent.filter(t => t.includes(q));
+  return `<div class="pop" id="menu">
+      <input type="text" id="menuq" placeholder="Find a topic…" value="${esc(filter||"")}">
+      <div class="rows">${list.length ? list.map(t => `
+        <button class="row" data-t="${esc(t)}">
+          <i class="dot" style="background:${colorOf(t)};width:9px;height:9px;border-radius:50%"></i>
+          <span class="nm">${esc(t)}</span><span class="ct">${counts[t]}</span>
+          <span class="box ${state.pinned.has(t)?"pin":""}" data-pin="${esc(t)}" title="Pin">✓</span>
+        </button>`).join("") : '<div class="empty" style="padding:24px 0">nothing found</div>'}</div>
+    </div>`;
+}
+
+function fmtSession(ts) {
+  const d = new Date(ts);
+  const day = d.toLocaleDateString("en-US", { day:"numeric", month:"long" });
+  const time = d.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", hour12:false });
+  return `${day}, ${time}`;
+}
+
+const PAGE_SIZE = 400;                    // cards at a time: long feeds are rendered in chunks
+let shownCount = PAGE_SIZE;
+
+function itemHtml(h, i) {
+  return `<div class="item">
+      <div class="num" style="background:${h.c}">${i+1}</div>
+      <div class="body" style="border-left-color:${h.c}">
+        <div class="q ${h.fm.map(x=>"f-"+x).join(" ")}">${esc(h.t)}</div>
+        ${h.n ? `<div class="note">✎ ${esc(h.n)}</div>` : ""}
+        <div class="meta">
+          ${h.g.map(x=>`<span class="tag" data-t="${esc(x)}" style="color:${colorOf(x)}">#${esc(x)}</span>`).join(" ")}
+          <span>${esc(h.s)}</span>
+          <span>${h.d}</span>
+          ${fragUrl(h) ? `<a href="${esc(fragUrl(h))}" target="_blank" rel="noopener"><svg class='i' viewBox='0 0 24 24'><path d='M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5'/><path d='M14 4h6v6M20 4 11 13'/></svg> to the spot</a>` : ""}
+          <button data-copy="${i}"><svg class='i' viewBox='0 0 24 24'><rect x='8' y='8' width='12' height='12' rx='2'/><path d='M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2'/></svg> copy</button>
+        </div>
+      </div></div>`;
+}
+
+function render(keepShown) {
+  if (!keepShown) shownCount = PAGE_SIZE;
+  const r = rows();
+  const on = [...active()];
+  document.getElementById("sub").textContent =
+    `${r.length} of ${DATA.length}` + (on.length ? ` · ${on.join(", ")}` : ` · ${byRecent.length} topics`);
+
+  if (!r.length) { document.getElementById("view").innerHTML = '<div class="empty">Nothing found</div>'; return; }
+
+  const slice = r.slice(0, shownCount);
+  let html = "", prev = null;
+  slice.forEach((h, i) => {
+    const t = Date.parse(h.ts) || 0;
+    if (prev === null || t - prev > GAP) html += `<div class="session">${fmtSession(h.ts)}</div>`;
+    prev = t;
+    html += itemHtml(h, i);
+  });
+  if (r.length > slice.length) {
+    html += `<button class="btn more" id="more">Show ${Math.min(PAGE_SIZE, r.length - slice.length)} more of ${r.length - slice.length}</button>`;
+  }
+  document.getElementById("view").innerHTML = html;
+  document.getElementById("view")._rows = r;
+}
+
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1600);
+}
+
+function asText(list) {
+  const on = [...active()];
+  const head = on.length ? `# ${on.join(", ")}\n\n` : "# All highlights\n\n";
+  return head + list.map((h,i) =>
+    `${i+1}. ${h.t}` + (h.n ? `\n   note: ${h.n}` : "") + (fragUrl(h) ? `\n   ${fragUrl(h)}` : "")
+  ).join("\n\n") + "\n";
+}
+
+document.addEventListener("click", e => {
+  const pin = e.target.closest("[data-pin]");
+  if (pin) {
+    e.stopPropagation();
+    const t = pin.dataset.pin;
+    state.pinned.has(t) ? state.pinned.delete(t) : state.pinned.add(t);
+    if (state.current === t) state.current = null;
+    chips(); return render();
+  }
+  if (e.target.closest("[data-all]")) { state.current = null; state.pinned.clear(); state.menu = false; chips(); return render(); }
+  if (e.target.closest("[data-menu]")) { state.menu = !state.menu; chips(); return; }
+
+  const t = e.target.closest("[data-t]");
+  if (t) {
+    state.current = state.current === t.dataset.t ? null : t.dataset.t;
+    state.menu = false; chips(); return render();
+  }
+  if (!e.target.closest("#menu")) { if (state.menu) { state.menu = false; chips(); } }
+
+  if (e.target.closest("#more")) { shownCount += PAGE_SIZE; return render(true); }
+  if (e.target.closest("#ask")) return askClaude();
+  if (e.target.closest("#dl")) return downloadPlain();
+  if (e.target.closest("#copyAll")) {
+    navigator.clipboard.writeText(asText(rows())); return toast("Topic copied");
+  }
+  const cp = e.target.closest("[data-copy]");
+  if (cp) {
+    const h = document.getElementById("view")._rows[+cp.dataset.copy];
+    navigator.clipboard.writeText("> " + h.t + (h.n ? "\n\n" + h.n : "") + (fragUrl(h) ? "\n\n" + fragUrl(h) : ""));
+    toast("Copied");
+  }
+});
+
+document.addEventListener("input", e => {
+  if (e.target.id === "menuq") {
+    const box = document.getElementById("menu");
+    const v = e.target.value;
+    box.outerHTML = menuHtml(v);
+    const inp = document.getElementById("menuq");
+    inp.focus(); inp.setSelectionRange(v.length, v.length);
+    return;
+  }
+  if (e.target.id === "q") { state.q = e.target.value; qDebounce(); }
+});
+
+function topicName() {
+  const on = [...active()];
+  return on.length ? on.join(", ") : (state.q || "all topics");
+}
+
+function fileName(ext) {
+  const d = new Date().toISOString().slice(0,10);
+  const t = topicName().replace(/[\\/:*?"<>|]/g, " ").trim().slice(0, 60) || "highlights";
+  return `${t} — ${d}.${ext}`;
+}
+
+/* Download as is: a markdown digest of whatever is in the filter right now.
+   No processing — just the sequence, the way it was marked. */
+function asDoc(list) {
+  const head = `# ${topicName()}\n\n_${list.length} highlight${list.length === 1 ? "" : "s"} · built ${new Date().toLocaleDateString("en-US")}_\n\n`;
+  let out = head, prev = null;
+  list.forEach((h, i) => {
+    const t = Date.parse(h.ts) || 0;
+    if (prev === null || t - prev > GAP) out += `\n## ${fmtSession(h.ts)}\n\n`;
+    prev = t;
+    out += `**${i+1}.** ${h.t}\n\n`;
+    if (h.n) out += `> ✎ ${h.n}\n\n`;
+    const meta = [h.s, h.d].filter(Boolean).join(" · ");
+    if (meta) out += `<sub>${meta}</sub>`;
+    const fu = fragUrl(h);
+    if (fu) out += `${meta ? " · " : ""}[to the spot](${fu})`;
+    out += "\n\n";
+  });
+  return out;
+}
+
+function downloadPlain() {
+  const r = rows();
+  if (!r.length) return toast("Nothing to download");
+  const blob = new Blob([asDoc(r)], { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName("md");
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("File saved to Downloads");
+}
+
+/* Ask Claude to sort it out: we open Claude with the task of building a document.
+   It pulls the data itself through MCP highlights — here we only pass the first
+   highlights, so the conversation starts with context even if MCP isn't connected. */
+function askClaude() {
+  const r = rows();
+  if (!r.length) return toast("Nothing to sort out");
+  const topic = topicName();
+  let q = `Put together a digest on the topic "${topic}" from my highlights.\n\n`
+        + `1. Take the full sequence through MCP highlights: get_topic_map(topic: "${topic}"), and search_highlights if that isn't enough.\n`
+        + `2. Sort it out: where I was heading, what repeats, where the contradictions are, what's missing. Keep the quotes word for word, keep the "to this spot" links.\n`
+        + `3. Put the finished text into a Google Doc "${topic} — digest" in the AI Highlights folder through the Google Drive connector, then give me the link.\n\n`
+        + `Here are those same highlights in the order I marked them (${r.length}):\n`
+        + r.slice(0,60).map((h,i) => `${i+1}. ${h.t}` + (h.n ? ` — note: ${h.n}` : "")).join("\n");
+  if (q.length > 13000) q = q.slice(0, 13000);
+  location.href = "claude://claude.ai/new?q=" + encodeURIComponent(q);
+}
+
+let qTimer = null;
+function qDebounce() { clearTimeout(qTimer); qTimer = setTimeout(() => render(), 160); }
+
+chips(); render();
+<\/script></body></html></script>
+<script>
+const NO_TAG_COLOR = "#b0b3ba";
+/* In python \w covers letters beyond ASCII, in JS it doesn't. Spell the classes
+   out, otherwise topics written as hashtags in a note would only be found in ASCII. */
+const TAG_RE = /#(\p{L}[\p{L}\p{N}_-]{1,39})/gu;
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+const safeColor = c => (typeof c === "string" && HEX_RE.test(c)) ? c : NO_TAG_COLOR;
+
+/* The same rules as in library.py: new format has a tag field, old one has hashtags in the note. */
+function tagsOf(h) {
+  const raw = h.tag;
+  if (typeof raw === "string" && raw.trim()) return [raw.trim().toLowerCase()];
+  const sl = h.slug;
+  if (typeof sl === "string" && sl.trim()) return [sl.trim().toLowerCase()];
+  if (Array.isArray(h.tags) && h.tags.length) {
+    return h.tags.map(t => String(t).trim().toLowerCase()).filter(Boolean);
+  }
+  const out = new Set();
+  let m; TAG_RE.lastIndex = 0;
+  while ((m = TAG_RE.exec(String(h.note || "")))) out.add(m[1].toLowerCase());
+  return [...out].sort();
+}
+
+function fmtOf(h) {
+  if (Array.isArray(h.fmt)) return h.fmt.filter(x => x === "b" || x === "u" || x === "s");
+  return ({ bold:["b"], under:["u"], strike:["s"] })[h.style] || [];
+}
+
+/* Merging several exports — the same logic the builder uses: a fresh record beats
+   its own older version, and only what has a tombstone gets deleted. */
+function mergeAll(files) {
+  const byId = new Map(), tagsByName = new Map();
+  const dead = new Set(), deadTags = new Set();
+  let seen = 0;
+
+  for (const raw of files) {
+    const list = Array.isArray(raw) ? raw : (Array.isArray(raw.highlights) ? raw.highlights : []);
+    for (const h of list) {
+      if (!h || typeof h !== "object") continue;
+      const id = String(h.id || ("auto-" + (seen++)));
+      byId.set(id, h);
+    }
+    for (const t of (Array.isArray(raw.tags) ? raw.tags : [])) {
+      if (!t || typeof t !== "object" || !t.name) continue;
+      const n = String(t.name).trim().toLowerCase();
+      if (n) { tagsByName.set(n, t); deadTags.delete(n); }
+    }
+    for (const d of (Array.isArray(raw.deleted) ? raw.deleted : [])) dead.add(String(d));
+    for (const d of (Array.isArray(raw.deletedTags) ? raw.deletedTags : [])) {
+      const n = String(d).trim().toLowerCase();
+      if (!tagsByName.has(n)) deadTags.add(n);
+    }
+  }
+  for (const d of dead) byId.delete(d);
+
+  const palette = {};
+  for (const [n, t] of tagsByName) if (!deadTags.has(n)) palette[n] = safeColor(t.color);
+
+  const docs = [];
+  for (const [n, t] of tagsByName) if (!deadTags.has(n) && t.doc === true) docs.push(n);
+
+  const items = [...byId.values()].sort((a, b) =>
+    String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+
+  const payload = items.map(h => {
+    const rawUrl = String(h.url || "");
+    /* A desktop capture carries the page number in the fragment — keep it whole. */
+    const u = rawUrl.startsWith("file:") ? rawUrl : rawUrl.split("#")[0];
+    return {
+      d: String(h.createdAt || "").slice(0, 10),
+      t: String(h.text || ""),
+      fm: fmtOf(h),
+      n: String(h.note || ""),
+      s: String(h.title || ""),
+      u,
+      g: tagsOf(h).filter(t => !deadTags.has(t)),
+      c: safeColor(h.color),
+      ts: String(h.createdAt || ""),
+    };
+  });
+
+  /* A topic missing from the tag list takes its color from its own highlights,
+     otherwise it shows up gray on the dashboard though it was colored on the page. */
+  for (const h of payload) {
+    for (const t of h.g) if (!palette[t] && h.c !== NO_TAG_COLOR) palette[t] = h.c;
+  }
+  return { payload, palette, docs: docs.sort() };
+}
+
+/* Exactly the escaping the builder does: "</" inside the data would close the
+   script block, and U+2028/2029 break the string in older engines. */
+const js = v => JSON.stringify(v)
+  .replace(/<\//g, "<\\/")
+  .replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+
+function show({ payload, palette, docs }) {
+  const tpl = document.getElementById("tpl").textContent.split("<\\/script>").join("</" + "script>");
+  const page = tpl
+    .replace("__PALETTE__", js(palette))
+    .replace("__NOTAG__", js(NO_TAG_COLOR))
+    .replace("__DOCS__", js(docs))
+    .replace("__DATA__", js(payload));
+  document.open();
+  document.write(page);
+  document.close();
+}
+
+const err = m => { document.getElementById("err").textContent = m || ""; };
+
+async function handle(fileList) {
+  err("");
+  const files = [...fileList].filter(f => /\.json$/i.test(f.name));
+  if (!files.length) return err("It needs a .json file — the one the marker exports.");
+
+  const parsed = [];
+  for (const f of files) {
+    let raw;
+    try { raw = JSON.parse(await f.text()); }
+    catch { return err(`The file "${f.name}" doesn't read as JSON. Export it again.`); }
+    if (!raw || typeof raw !== "object") return err(`The file "${f.name}" is empty or the wrong shape.`);
+    parsed.push(raw);
+  }
+
+  const res = mergeAll(parsed);
+  if (!res.payload.length) return err("There isn't a single highlight in the file.");
+  show(res);
+}
+
+const drop = document.getElementById("drop");
+document.getElementById("file").addEventListener("change", e => handle(e.target.files));
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add("hot");
+}));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.remove("hot");
+}));
+drop.addEventListener("drop", e => handle(e.dataTransfer.files));
+/* Missing the frame shouldn't open the file on top of the page. */
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => e.preventDefault());
+</script>
+</body></html>
