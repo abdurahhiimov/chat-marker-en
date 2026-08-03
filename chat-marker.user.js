@@ -886,6 +886,17 @@
     fab.addEventListener('click', () => togglePanel());
   }
 
+  /* The stylesheet sits in <head> and the interface in <body>. Single-page apps
+     that rewrite <head> on navigation (LinkedIn does) can drop the stylesheet
+     while leaving the interface standing — and then the whole panel, which is
+     always in the DOM and only hidden by CSS, spills across the page as raw
+     text. Cheap to check, so we check. */
+  function keepShellAlive() {
+    // textContent survives the detach, so the colour rules come back with it
+    if (!styleEl.isConnected && document.head) document.head.appendChild(styleEl);
+    if (!root.isConnected && document.body) document.body.appendChild(root);
+  }
+
   function toast(msg) {
     toastHost.innerHTML = `<div class="cm-toast">${esc(msg)}</div>`;
     setTimeout(() => { toastHost.innerHTML = ''; }, 1700);
@@ -1983,6 +1994,7 @@
     let lastPath = location.pathname;
     setInterval(() => {
       if (location.pathname !== lastPath) { lastPath = location.pathname; repaintSoon(); }
+      keepShellAlive();
     }, 800);
 
     /* We deliberately don't listen to characterData: while Claude is typing an
