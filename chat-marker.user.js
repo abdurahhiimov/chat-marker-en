@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Chat Marker — highlighter and notes on any page
 // @namespace    aziz.chatmarker
-// @version      1.2.0
+// @version      1.2.1
 // @description  Highlight text on any site, hang a topic and a style on it, search the whole database, export to your library.
 // @author       Aziz
 // @homepageURL  https://github.com/abdurahhiimov/chat-marker-en
