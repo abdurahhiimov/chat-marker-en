@@ -1,4 +1,4 @@
-# Chat Marker
+———# Chat Marker
 
 A highlighter for the browser. Mark something in a chat with an AI or in an article, and it stays marked when you come back, sorted by topic, in a library you can later just ask questions about.
 
