@@ -1,4 +1,4 @@
-———# Chat Marker
+# Chat Marker
 
 A highlighter for the browser. Mark something in a chat with an AI or in an article, and it stays marked when you come back, sorted by topic, in a library you can later just ask questions about.
 
@@ -165,3 +165,13 @@ macOS for levels 2 and 3. Level 1 runs on any system and any Chromium browser wi
 ## License
 
 MIT. Do what you like.
+
+## Copyright & provenance
+
+Copyright (c) 2026 Aziz Abdurahimov. Licensed under MIT (see [LICENSE](LICENSE)) — you can use, copy, modify, and redistribute this, including commercially, as long as the license text stays attached.
+
+Being MIT and public doesn't mean it's unowned. The code is still copyrighted; the license is what grants everyone permission to use it, not a waiver of authorship. This repo's commit history (under this GitHub account, with timestamps going back to the first commit) is the record of who wrote it and when, same as it would be for any other project.
+
+If you build on this, a link back or a mention is appreciated but not legally required under MIT — the license only requires keeping the copyright notice in copies of the code itself.
+
+This section is general information, not legal advice — I'm not a lawyer. If you're dealing with an actual dispute over this code, a lawyer familiar with IP/copyright in your jurisdiction is who you want, not a README.
